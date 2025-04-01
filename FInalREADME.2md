@@ -1,0 +1,158 @@
+# Secure Messaging API
+
+A secure messaging backend built with Flask that supports AES-256 encryption, user-based message retrieval, debugging tools, and token-based authentication. The API is containerized with Docker and includes a test suite with code coverage reporting.
+
+---
+
+## Features
+- AES-256 (CBC mode) encrypted message storage
+- Token-based authentication
+- Secure user-specific message retrieval
+- Broken decryption logic debugger
+- Optional message expiry (10 minutes)
+- Full test coverage with reporting
+- Dockerized for easy deployment
+
+---
+
+## Quick Start (Local)
+
+### 1. Clone and set up virtualenv
+```bash
+git clone https://github.com/yourname/secure-messaging-api.git
+cd secure-messaging-api
+python -m venv venv
+source venv/bin/activate  # or venv\Scripts\activate on Windows
+```
+
+### 2. Install dependencies
+```bash
+pip install -r requirements.txt
+```
+
+### 3. Run the application
+```bash
+python run.py
+```
+
+Visit: [http://127.0.0.1:4999](http://127.0.0.1:4999)
+
+---
+
+## Run with Docker
+
+### 1. Build the Docker image
+```bash
+docker build -t backend-coding-challenge .
+```
+
+### 2. Run the container
+```bash
+docker run -p 4999:4999 backend-coding-challenge
+```
+
+Visit: [http://localhost:4999](http://localhost:4999)
+
+---
+
+## Authentication
+The API uses simple token-based authentication. Include the following header:
+
+```http
+Authorization: Bearer <user_token>
+```
+
+Defined in `config.py`:
+```
+USER_TOKENS = {
+    "user123": "token123",
+    "admin456": "securetoken456"
+}
+```
+
+## Design Question Answers
+
+What encryption method and mode did you choose, and why?
+
+We use AES-256 in CBC mode for confidentiality. CBC is a widely used block cipher mode and allows for strong encryption with a unique random IV per message.
+
+How will you ensure only the original user can access their messages?
+
+We enforce this using a token_required decorator that checks the Bearer token against a secure mapping of users to tokens. The decrypted message is only returned if the token's user matches the userId in the request.
+
+How do you plan to store and later extract the IV?
+
+The 16-byte IV is generated randomly and prepended to the ciphertext before base64 encoding. During decryption, we decode and extract the first 16 bytes as the IV.
+
+How would you prevent user ID spoofing to access other users' messages?
+
+User identity is verified through the token, not request headers. The server only allows access if the user matched from the token equals the userId path or body parameter.
+
+
+## Assumptions and Constraints
+
+In-memory storage is used for simplicity; in production, persistent storage is needed.
+
+User management is static via USER_TOKENS; real-world usage should use OAuth/JWT.
+
+No database or email verification – this keeps the backend lightweight and focused on encryption/authentication logic.
+
+Message expiry is hardcoded to 10 minutes but could be made configurable
+---
+
+## Endpoints
+
+### POST `/messages`
+Store an encrypted message.
+```json
+{
+  "userId": "user123",
+  "message": "Top secret!"
+}
+```
+
+### GET `/messages/<userId>`
+Retrieve all decrypted messages for the user.
+
+### POST `/debug/decrypt`
+Compare `broken_decrypt()` vs `fixed_decrypt()` logic.
+```json
+{
+  "encrypted": "<base64_string>"
+}
+```
+
+---
+
+## Running Tests
+
+### 1. Run tests with coverage
+```bash
+coverage run -m unittest discover tests
+coverage report
+```
+
+### What The Tests Cover
+- AES encryption and decryption roundtrip
+- API POST `/messages` and GET `/messages/<userId>`
+- `/debug/decrypt` endpoint with `broken_decrypt()` + `fixed_decrypt()`
+- Token-based access control
+
+---
+
+## Encryption Design
+- AES-256 (CBC)
+- Random 16-byte IV per message
+- IV is prepended to ciphertext and base64 encoded
+- PKCS7 padding with `pad()` and `unpad()`
+
+---
+
+## Notes
+- This API uses in-memory storage for messages (no DB).
+- For production, use persistent storage and real user auth.
+
+---
+
+## License
+MIT License © Sakhile Motha
